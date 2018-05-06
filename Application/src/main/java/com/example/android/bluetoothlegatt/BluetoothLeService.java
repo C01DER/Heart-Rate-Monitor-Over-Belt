@@ -28,8 +28,11 @@ import android.bluetooth.BluetoothManager;
 import android.bluetooth.BluetoothProfile;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.os.Binder;
 import android.os.IBinder;
+import android.os.Vibrator;
 import android.util.Log;
 
 import java.util.List;
@@ -65,6 +68,9 @@ public class BluetoothLeService extends Service {
 
     public final static UUID UUID_HEART_RATE_MEASUREMENT =
             UUID.fromString(SampleGattAttributes.HEART_RATE_MEASUREMENT);
+
+    public final static ToneGenerator toneGen =
+            new ToneGenerator(AudioManager.STREAM_MUSIC, 300);
 
     // Implements callback methods for GATT events that the app cares about.  For example,
     // connection change and services discovered.
@@ -139,6 +145,19 @@ public class BluetoothLeService extends Service {
             final int heartRate = characteristic.getIntValue(format, 1);
             Log.d(TAG, String.format("Received heart rate: %d", heartRate));
             intent.putExtra(EXTRA_DATA, String.valueOf(heartRate));
+
+
+            final int MAX_HEART_RATE = 150 ;
+            final int MIN_HEART_RATE = 110 ;
+            Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+
+            if (heartRate >= MAX_HEART_RATE) {
+                toneGen.startTone(ToneGenerator.TONE_SUP_BUSY, 500);
+                v.vibrate(400);
+            } else if (heartRate <= MIN_HEART_RATE) {
+                toneGen.startTone(ToneGenerator.TONE_SUP_ERROR, 500);
+                v.vibrate(50);
+            }
         } else {
             // For all other profiles, writes the data formatted in HEX.
             final byte[] data = characteristic.getValue();
